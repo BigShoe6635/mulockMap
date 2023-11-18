@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mulock Maps</title>
+    <style>
+        body {
+            overflow: hidden;
+            margin: 0;
+        }
+        #pano {
+            width:100vw;
+            height:100vh;
+        }
+        #minimap {
+            position: fixed;
+            right: 10px;
+            bottom: 10px;
+        }
+        .cell {
+            width: 48px;
+            height: 48px;
+            border: 1px solid #fff;
+        }
+        .row {
+            display: flex;
+        }
+        .cell {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background-color: gray;
+        }
+        .ctypewall {
+            background-color: black;
+        }
+        .cell .arrow {
+            display: none;
+            color: yellow;
+        }
+        .cell.user .arrow {
+            display: block;
+        }
+    </style>
+</head>
+<body>
+    <script src="marzipano.js"></script>
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js" integrity="sha256-/JqT3SQfawRcv/BIHPThkBvs0OEvtFFmqPF/lYI/Cxo=" crossorigin="anonymous"></script>
+
+    <div id="pano"></div>
+    <div id="minimap"></div>
+
+    <script>
+        // image files here
+        var image = 0;
+        var path = 'https://raw.githubusercontent.com/BigShoe6635/mulockMap/main/'
+        var images = [
+            'test.jpg',
+            'test2.jpg'
+        ];
+
+        // map
+        var w = "wall"
+        var map = [
+            [0, 1, 0],
+            [w, 0, 1],
+            [0, w, 0],
+            [1, 0, 1]
+        ]
+
+        // minimap
+        for(var y = 0; y < map.length; y++ ) {
+            $('#minimap').append(`<div class="row row${y}"></div>`)
+            var row = map[y];
+            for(x = 0; x < row.length; x++) {
+                $(`.row${y}`).append(`<div class="cell c${x}${y}"><div class="arrow">➤</div></div>`)
+                $(`.c${x}${y}`).addClass('ctype' + row[x]);
+            }
+        }
+        
+        // 360 image stuff that I don't understand
+        var panoElement = document.getElementById('pano');
+        var viewerOpts = {
+        controls: {
+            mouseViewMode: 'drag'
+        }
+        };
+
+        var viewer = new Marzipano.Viewer(panoElement, viewerOpts)
+        var levels = [
+        { tileSize: 512, size: 512 },
+        { tileSize: 512, size: 1024 }
+        ];
+
+        var geometry = new Marzipano.EquirectGeometry(levels);
+        var source = Marzipano.ImageUrlSource.fromString(path+images[image]); // image here
+        var view = new Marzipano.RectilinearView();
+
+        var scene = viewer.createScene({
+        source: source,
+        geometry: geometry,
+        view: view
+        });
+
+        scene.switchTo();
+
+        // switching images
+        function changeScene(imageNumber) {
+            image = imageNumber;
+            source = Marzipano.ImageUrlSource.fromString(path+images[image]);
+            scene = viewer.createScene({source: source,geometry: geometry,view: view});
+            scene.switchTo();
+
+            console.log('rotating')
+            direction = scene.view().yaw()
+            direction = (direction * 180) / Math.PI;
+            direction = (direction + 360) % 360;
+            $('.cell.user .arrow').css(`transform`, `rotate(${direction}deg)`);
+        }
+
+        // move user function
+        function moveUser(dx, dy) {
+            var mapY = map[userY + dy];
+            if(mapY === undefined) {
+                console.log("can't go here");
+                return;
+            }
+            var nextCellType = mapY[userX + dx];
+            console.log(`move ${dx}, ${dy}`);
+            console.log('nextCellType = ' + nextCellType);
+            if (nextCellType !== "wall" && nextCellType !== undefined) {
+                userX += dx;
+                userY += dy;
+                changeScene(map[userY][userX]);
+            } else {
+                console.log("can't go here");
+            }
+            console.log("X = "+userX+" Y = "+userY+" direction = "+direction);
+
+            $('.cell').removeClass('user');
+            $(`.c${userX}${userY}`).addClass('user');
+        }
+
+        // user varibles
+        var userX = 0;
+        var userY = 0;
+
+        // convert to degrees
+        var direction = scene.view().yaw()
+        direction = (direction * 180) / Math.PI;
+        direction = (direction + 360) % 360;
+        
+        // controls
+        moveUser(0, 0);
+        document.addEventListener('keydown', function(event) {
+            if (event.key === 'Enter') {
+                
+                direction = scene.view().yaw()
+                direction = (direction * 180) / Math.PI;
+                direction = (direction + 360) % 360;
+
+                if (direction >= 315 || direction < 45) {
+                    // east
+                    moveUser(1, 0);
+                } else if (direction >= 45 && direction < 135) {
+                    // south
+                    moveUser(0, 1);
+                } else if (direction >= 135 && direction < 225) {
+                    // west
+                    moveUser(-1, 0);
+                } else if (direction >= 225 && direction < 315) {
+                    // north
+                    moveUser(0, -1);
+                }
+            }
+        });
+        document.addEventListener('pointermove', function(event) {
+            direction = scene.view().yaw()
+            direction = (direction * 180) / Math.PI;
+            direction = (direction + 360) % 360;
+            $('.cell.user .arrow').css(`transform`, `rotate(${direction}deg)`);
+        })
+    </script>
+
+</body>
+</html>
