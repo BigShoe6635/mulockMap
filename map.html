@@ -31,7 +31,7 @@
             justify-content: center;
             background-color: gray;
         }
-        .ctypewall {
+        .wall {
             background-color: black;
         }
         .cell .arrow {
@@ -62,21 +62,13 @@
         // map
         var w = "wall"
         var map = [
-            [0, 1, 0],
-            [w, 0, 1],
-            [0, w, 0],
-            [1, 0, 1]
+            [w, w, w, w, w],
+            [w, 0, 1, 0, w],
+            [w, w, 0, 1, w],
+            [w, 0, w, 0, w],
+            [w, 1, 0, 1, w],
+            [w, w, w, w, w]
         ]
-
-        // minimap
-        for(var y = 0; y < map.length; y++ ) {
-            $('#minimap').append(`<div class="row row${y}"></div>`)
-            var row = map[y];
-            for(x = 0; x < row.length; x++) {
-                $(`.row${y}`).append(`<div class="cell c${x}${y}"><div class="arrow">➤</div></div>`)
-                $(`.c${x}${y}`).addClass('ctype' + row[x]);
-            }
-        }
         
         // 360 image stuff that I don't understand
         var panoElement = document.getElementById('pano');
@@ -137,19 +129,37 @@
             }
             console.log("X = "+userX+" Y = "+userY+" direction = "+direction);
 
-            $('.cell').removeClass('user');
-            $(`.c${userX}${userY}`).addClass('user');
+            $('.cell').removeClass('wall');
+            
+            for(var y = 0; y < 3; y++ ) {
+                var row = map[y+userY-1];
+                for(x = 0; x < 3; x++) {
+                    if (row[x+userX-1]==='wall') {
+                        $(`.c${x}${y}`).addClass('wall');
+                    }
+                    console.log(y+userY + " , " + x);
+                }
+            }
         }
 
         // user varibles
-        var userX = 0;
-        var userY = 0;
+        var userX = 1;
+        var userY = 1;
 
         // convert to degrees
         var direction = scene.view().yaw()
         direction = (direction * 180) / Math.PI;
         direction = (direction + 360) % 360;
         
+        // minimap
+        for(var y = 0; y < 3; y++ ) {
+            $('#minimap').append(`<div class="row row${y}"></div>`)
+            for(x = 0; x < 3; x++) {
+                $(`.row${y}`).append(`<div class="cell c${x}${y}"><div class="arrow">➤</div></div>`)
+            }
+        }
+        $(`.c${1}${1}`).addClass('user');
+
         // controls
         moveUser(0, 0);
         document.addEventListener('keydown', function(event) {
